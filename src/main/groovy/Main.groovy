@@ -8,18 +8,37 @@
 import groovy.sql.Sql
 import groovy.cli.picocli.CliBuilder
 
-static void main(String[] args) {
+static void createTable() {
   def sql = Sql.newInstance('jdbc:sqlite:Library/Accounts/account.db', 'org.sqlite.JDBC')
-  def cli = new CliBuilder(usage: 'Main.groovy [-a]')
-  cli.with {
-    c longOpt: 'create', args:1, argName: 'create', required: false, 'Create a new account'
-  }
+  String sqlCreate = """
+  CREATE TABLE IF NOT EXISTS accounts
+  (
+    owner                TEXT,
+    accountId            INTEGER PRIMARY KEY AUTOINCREMENT,
+    balance              BLOB
+   );"""
+  sql.execute(sqlCreate)
+  sql.close()
+}
+
+static void main(String[] args) {
+  createTable()
+  def cli = new CliBuilder(name: "Bank account proto")
+  cli.h(longOpt: "help", "Print this help message")
+  cli.n(longOpt:"new", "Create new account", args: '1', argName: 'Owner name')
 
   def options = cli.parse(args)
-  if (!options) {
-    println "No arguments provided"
-  } else if(options.c) {
-    println sql.connection.toString()
-    println options.c
+
+  if (options.h) {
+    cli.usage()
+
+  }
+  if(options.n) {
+    def sql = Sql.newInstance('jdbc:sqlite:Library/Accounts/account.db', 'org.sqlite.JDBC')
+    String sqlInsert = """
+      INSERT INTO accounts (owner, balance) VALUES ("${options.n}", "0\$");
+    """
+    sql.execute(sqlInsert)
+    sql.close()
   }
 }
